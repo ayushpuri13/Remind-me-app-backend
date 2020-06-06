@@ -3,7 +3,7 @@ var app= express();
 var auth =require('./Routes/auth.js');
 var mongoose =require('mongoose');
 var bodyParser =require('body-parser');
-
+var port=process.env.PORT || 3000;
 
 //----------Config-----//
 app.use(bodyParser.json());
@@ -33,4 +33,4 @@ app.use('/api/v1/auth',auth);
 
 
 
-app.listen(3000,()=>console.log('Example app listening'))
+app.listen(port,()=>console.log('Example app listening'))
