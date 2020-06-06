@@ -25,6 +25,8 @@ mailer.extend(app, {
 app.mailer.send('email', {
     to: req.body.email, // REQUIRED. This can be a comma delimited string just like a normal email to field. 
     subject: 'Test Email', // REQUIRED.
+    test:"Hello Wordl?",
+    html:"<br>Hello World</br>",
     otherProperty: 'Other Property' // All additional properties are also passed to the template as local variables.
   }, function (err) {
     if (err) {

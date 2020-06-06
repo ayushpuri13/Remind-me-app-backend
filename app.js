@@ -8,8 +8,9 @@ var port=process.env.PORT || 3000;
 //----------Config-----//
 app.use(bodyParser.json());
 
-app.set('views', __dirname + '/Config');
-app.set('view engine', 'jade');
+
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
 
 
 
