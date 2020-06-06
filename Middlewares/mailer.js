@@ -30,10 +30,10 @@ app.mailer.send('email', {
     if (err) {
       // handle error
       console.log(err);
-      res.send('There was an error sending the email');
+      res.status(401).json({"message":"There was an error sending the email"});
       return;
     }
-    res.send('Email Sent');
+    res.status(200).json({"message":"Email Sent"});
   });
 
 }

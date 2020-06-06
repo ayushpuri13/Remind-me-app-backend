@@ -46,6 +46,6 @@ router.post('/change-password',authenticateToken,authController.changePassword);
 router.post('/forgot-password',authController.forgotPassword);
 
 router.post('/refresh-token',authController.refreshToken);
-router.post('/send-',authController.sendVerifyMail,mailer.sendMail);
+router.post('/send-verifymail',authController.sendVerifyMail,mailer.sendMail);
 
 module.exports=router;
