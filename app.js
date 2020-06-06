@@ -4,13 +4,13 @@ var auth =require('./Routes/auth.js');
 var mongoose =require('mongoose');
 var bodyParser =require('body-parser');
 var port=process.env.PORT || 3000;
+var cors =require('cors');
 
 //----------Config-----//
 app.use(bodyParser.json());
 
 
-app.engine('html', require('ejs').renderFile);
-app.set('view engine', 'html');
+app.use(cors());
 
 
 
