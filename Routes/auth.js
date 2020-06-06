@@ -2,7 +2,8 @@ const express=require('express');
 var router = express.Router();
 var jwt=require('jsonwebtoken');
 const Validators=require('../Middlewares/Validators')
-
+const crypto=require('crypto');
+const mailer=require('../Middlewares/mailer')
 
 
 
@@ -23,9 +24,11 @@ function authenticateToken(req,res,next){
 
 	
 
-	jwt.verify(token,'myjsonwebtoken',err=>{
-		console.log(err);
-		if(err) return res.status(401);
+	jwt.verify(token,'myjsonwebtoken',(err,decode)=>{
+		if(err) return res.status(401).json(err.message);
+		
+		
+		req.decode=decode;
 		next();
 	})
 }
@@ -38,12 +41,11 @@ router.post('/login',Validators.login,authController.login);
 router.post('/register',Validators.register,authController.register);
 
 
-router.get('/change-password',authenticateToken,function(req,res){
-	
-	res.send('token auth');
-});
+router.post('/change-password',authenticateToken,authController.changePassword);
 
+router.post('/forgot-password',authController.forgotPassword);
 
-
+router.post('/refresh-token',authController.refreshToken);
+router.post('/send-',authController.sendVerifyMail,mailer.sendMail);
 
 module.exports=router;

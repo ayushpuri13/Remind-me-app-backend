@@ -8,6 +8,9 @@ var bodyParser =require('body-parser');
 //----------Config-----//
 app.use(bodyParser.json());
 
+app.set('views', __dirname + '/Config');
+app.set('view engine', 'jade');
+
 
 
 

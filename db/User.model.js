@@ -27,6 +27,10 @@ var UserSchema=new Schema({
 	
 	contact:{
 		type:Number
+ },
+
+ isVerified:{
+ 	type:Boolean
  }
 
 
