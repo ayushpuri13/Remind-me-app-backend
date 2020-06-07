@@ -166,7 +166,7 @@ if(!user.length==0)
 	       
 	            if(user)
 	                {
-		                res.status(204);
+		                res.status(204).json({"message":"Password Updated"});
 	                }
 	
                 })
@@ -201,6 +201,7 @@ UserModel.find({'email':req.body.email},function(err,user)
 
 	  if(!user.length==0)
        {
+           //---destroys previous token if exists
 
             ResetPassword.find({'email':req.body.email},function(err,resetpass){
             if(resetpass){
@@ -208,17 +209,20 @@ UserModel.find({'email':req.body.email},function(err,user)
 	          resetpass[0].destroy,function(err){
 		        console.log(err);
           }
-	         
         }
+         //creates new token
 
-ResetPassword.create({
-	email:req.body.email,
-	token:crypto.randomBytes(32).toString('hex'),
-	expiry:moment.utc().add('seconds')
-},function(err,newresetpass){
-	if(err) res.json({Error:'Failed'}).status(400);
-	if(newresetpass){
-		console.log(newresetpass);
+         ResetPassword.create({
+	        email:req.body.email,
+	        token:crypto.randomBytes(32).toString('hex'),
+	        expiry:moment().add(4,'h')
+          },function(err,newresetpass){
+	          if(err) res.json({Error:'Failed'}).status(400);
+	          if(newresetpass){
+		          console.log(newresetpass);
+              console.log(moment().isBefore(newresetpass.expiry))
+
+//-------------send mail------//
 
 const output=`
      <p>Hello ${user[0].first_name}</p>
@@ -235,7 +239,7 @@ let info = {
       };
 
 transporter.sendMail(info, function(error, info){
-       console.log(transporter);  
+        
         if(error)
           {res.status(404).json({"ERR":"mail error"})
             return console.log(error);}
@@ -259,29 +263,44 @@ transporter.sendMail(info, function(error, info){
 
 exports.resetPassword=function(req,res){
 
-ResetPassword.find({token:req.body.token},function(err,user){
-if(err) res.status(400);
-	
-if(!user.length==0)
- {
-   UserModel.find({email:user[0].email},function(err,userinfo){
-     if(!userinfo.length==0)
-     {
+ ResetPassword.find({token:req.body.token},function(err,user){
+ if(err) res.status(400);
 
-	    user.info[0].password=req.body.new-password;
-        user.info[0].save(function(err,updatedpass){
-	       if(err) res.status(400).json({"Error":"Reset Password Failed"});
-	       if(updatepass)
-	        {
-		      res.status(204)
-	        }
-           })
-      }
-     })
+
+//checks if token exists
+	
+ if(!user.length==0)
+  {
+    //checks expiry of token
+   if(moment().isBefore(moment(user[0].expiry))){
+
+
+      user=user[0];
+      UserModel.find({'email':user.email},function(err,userinfo){
+      if(!userinfo.length==0)
+        
+        //finds email and reset the password
+
+        {
+           userinfo[0].password=req.body['new-password'];
+           userinfo[0].save(function(err,updatedpass){
+	            if(err) res.status(400).json({"Error":"Reset Password Failed"});
+	            console.log(err)
+              if(updatedpass)
+	             {
+		             res.status(204).json({"message":"Password"})
+	             }
+              })
+          }
+       })
+
+     }
+
+    else {res.status(401).json({"Error":"Token Expired"});}
   }
 else
  {
-	res.json({"Error":"Invalid Token"}).status(401);
+	res.status(401).json({"Error":"Invalid Token"});
  }
 
 })
@@ -292,10 +311,18 @@ else
 
 exports.validateEmail=function(req,res)
  {
+
+   //checks if token exists
   ValidateEmailModel.find({token:req.body.token},function(err,token){
   	if(err) res.status(400);
   	if(!token.length==0)
   	  {
+        console.log(moment().utc().isBefore(moment.utc(token[0].expiry)),moment(),moment(token[0].expiry),token[0].expiry);
+        //checks expiry of token
+       if(moment().isBefore(moment(token[0].expiry))){
+        
+      //makes user verified
+
          UserModel.find({email:token[0].email},function(err,user){
             if(err) res.status(400);
             if(!user.length==0)
@@ -309,10 +336,12 @@ exports.validateEmail=function(req,res)
               })
             }
         })
+       }
+       else{ res.status(401).json({"Error":"Token Expired"}); }
   	  }
     else
      {
-       res.json({"Error":"Invalid Token"}).status(401);
+       res.status(401).json({"Error":"Invalid Token"});
       }
 
   })
@@ -321,32 +350,36 @@ exports.validateEmail=function(req,res)
 
 exports.refreshToken=function(req,res){
 var authHeaders=req.body.refresh;
-  var token=authHeaders.split(' ')[1];
+  var token=authHeaders;
 
   
+//checks token authentication
 
-  jwt.verify(token,config.secret_key,(err,decode)=>{
+  jwt.verify(token,process.env.secret_key,(err,decode)=>{
     if(err) return res.status(401).json(err.message);
-    
+    console.log(decode.email)
     
     req.decode=decode;
     })
+  if(req.decode){
+    
+    //sending token if user exists
 
-  UserModel.find({'email':req.decode.email},function(err,user){
-    if(err) res.status(400).json(err);
+     UserModel.find({'email':req.decode.email},function(err,user){
+       if(err) res.status(400).json(err);
 
-    if(!user.length==0)
-      {
-         let token=
-         {
-           refresh:jwt.sign({email:email},process.env.secret_key,{expiresIn:'1d'}),
-           access:jwt.sign({email:email},process.env.secret_key,{expiresIn:'1h'})
-          }
-         res.status(200).json(token);
-      }
+       if(!user.length==0)
+        {
+           let token=
+           {
+             refresh:jwt.sign({email:user[0].email},process.env.secret_key,{expiresIn:'1d'}),
+             access:jwt.sign({email:user[0].email},process.env.secret_key,{expiresIn:'1h'})
+            }
+           res.status(200).json(token);
+        }
 
   })
-}
+}}
 
 
 //-----------------------------send verify mail-------------------------//
@@ -358,6 +391,8 @@ UserModel.find({'email':req.body.email},function(err,user)
      if(err) res.status(400).json({Error:'User does not exist'});
 
      if(!user.length==0){
+      
+       //checks and destroys if token exists
 
         ValidateEmailModel.find({'email':req.body.email},function(err,resetpass){
         if(!resetpass.length==0)
@@ -366,11 +401,13 @@ UserModel.find({'email':req.body.email},function(err,user)
             console.log(err);
              }
           }
+      
+        //creating new token to send mail
 
         ValidateEmailModel.create({
          email:req.body.email,
          token:crypto.randomBytes(32).toString('hex'),
-         expiry:moment.utc().add('seconds')
+         expiry:moment().add(4,'h')
         },function(err,newresetpass){
            if(err) res.json({Error:'Failed'}).status(400);
            if(newresetpass){

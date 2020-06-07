@@ -149,7 +149,7 @@ exports.validateEmail=[
 
 exports.refreshToken=[
    
-     check('token').isLength({min:30}).withMessage('Token invalid')
+     check('refresh').isLength({min:30}).withMessage('Token invalid')
     .not().isEmpty().withMessage('Please provide the token'),
 
   
