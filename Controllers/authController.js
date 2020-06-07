@@ -13,9 +13,8 @@ result=dotenv.config({path:"../"});
 //----------- jwt generate token -------////
 function generateToken(email){
 
-
-var token=jwt.sign({email:email},process.env.secret_key,{expiresIn:'1h'});
-return token;
+ var token=jwt.sign({email:email},process.env.secret_key,{expiresIn:'1h'});
+ return token;
 
 }
 
@@ -31,17 +30,19 @@ exports.login=function(req,res){
 UserModel.find({'email':req.body.email},function(err,user){
 if(err) res.status(400).json(err);
 
-if(!user.length==0){
+if(!user.length==0)
+   {
   
 	
       if(user[0].password==req.body.password)
-        {
-	         const token={
-             refresh:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1d'}),
-             access:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1h'})
-           };
-           let cuser=user[0];
-	         res.json({cuser,token});
+        {//if user exists send token
+	         const token=
+            {
+              refresh:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1d'}),
+              access:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1h'})
+             };
+           user=user[0];
+	         res.json({user,token});
 	     }
       
       else
@@ -52,67 +53,62 @@ if(!user.length==0){
     }
 
 else{
-res.status(400).json({"message":"User not found or invalid email"});
-}
+ res.status(400).json({"message":"User not found or invalid email"});
+ }
 
 })
 }
 
 
-//-----------------------register---------//
+//-----------------------register new  user----------------------------------------------//
 
 
 exports.register=function(req,res){
 
-UserModel.find({'email':req.body.email},function(err,user){
-console.log(transporter);
-console.log(process.env.password,process.env.email,process.env.secret_key)
-if(!user.length==0 && !user[0].isVerified) {res.status(422).json({"Error":"Email already registered but not verified"})};
+UserModel.find({'email':req.body.email},function(err,user)
+ {
+   
+   //check if user already exixts
 
-if(!user.length==0) {res.status(422).json({"Error":"Email already registered"})};
+   if(!user.length==0 && !user[0].isVerified) {res.status(422).json({"Error":"Email already registered but not verified"})};
 
-   UserModel.create({
-	   	first_name:req.body.first_name,
-		last_name:req.body.last_name,
-		email:req.body.email,
-		password:req.body.password,
-		contact:req.body.contact,
-		isVerified:false
-	},function(err,user){
+   if(!user.length==0) {res.status(422).json({"Error":"Email already registered"})};
+
+//creating user if not exists
+
+
+   UserModel.create(
+    {
+  	 first_name:req.body.first_name,
+		 last_name:req.body.last_name,
+		 email:req.body.email,
+		 password:req.body.password,
+		 contact:req.body.contact,
+		 isVerified:false
+	},
+   function(err,user){
 		
-     const token={
-             refresh:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1d'}),
-             access:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1h'})
-           };
-if(err) res.json(err).status(400);
+        const token={
+              refresh:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1d'}),
+              access:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1h'})
+              };
+        if(err) res.json(err).status(400);
 
-if(user){
-ValidateEmailModel.create({
-  email:req.body.email,
-  token:crypto.randomBytes(32).toString('hex'),
-  expiry:moment.utc().add('seconds')
-},function(err,newresetpass){
-  if(err) res.json({Error:'Failed'}).status(400);
-  if(newresetpass){
-    console.log(newresetpass);     
-
-      //   let transporter = nodemailer.createTransport({
-      
-      //   host: "mail.google.com",
-      //   service:"Gmail",
-      //   port: 587,
-      //   secure: false, // true for 465, false for other ports
-      //   auth: {
-      //      user: process.env.email, // generated ethereal user
-      //      pass:process.env.password  // generated ethereal password
-      //    },
-      //   tls:{
-      //       rejectUnauthorized:false
-      //   }
-      // });
-    
+        if(user)
+           {
+           //create validate email token and saving in database
+             ValidateEmailModel.create({
+              email:req.body.email,
+              token:crypto.randomBytes(32).toString('hex'),
+              expiry:moment.utc().add('seconds')
+               },
+                 function(err,newresetpass){
+                         if(err) res.json({Error:'Failed'}).status(400);
+                         if(newresetpass)
+                          {
+                             console.log(newresetpass);         
                    
- 
+ ///-----------send verify email on registration if user does not exists -----
 
 const output=`
      <p>Hello ${req.body.first_name}</p>
@@ -163,21 +159,23 @@ if(!user.length==0)
     {
 	
        if(user[0].password==req.body['current-password'])
-         {
-	         user[0].password=req.body['new-password'];
-             user[0].save(function(err,user){
-	         console.log(err);
+           {
+	            user[0].password=req.body['new-password'];
+              user[0].save(function(err,user){
+	            console.log(err);
 	       
-	         if(user)
-	          {
-		        res.json(user).status(200);
-	          }
+	            if(user)
+	                {
+		                res.json(user).status(200);
+	                }
 	
-              })
-          }
+                })
+           }
+       
+
        else
-         {
-	         res.status(400).json({"message":'Invalid password'});
+          {
+	            res.status(400).json({"message":'Invalid password'});
           }
 
     }
@@ -197,18 +195,21 @@ else
 
 exports.forgotPassword=function(req,res){
 
-UserModel.find({'email':req.body.email},function(err,user){
-	if(!user) res.status(400).json({Error:'User does not exist'});
+UserModel.find({'email':req.body.email},function(err,user)
+ {
+  	if(err) res.status(400).json({Error:'User does not exist'});
 
-	if(user){
+	  if(!user.length==0)
+       {
 
-ResetPassword.find({'email':req.body.email},function(err,resetpass){
- if(resetpass){
- 	if(!resetpass.length==0){
-	resetpass[0].destroy,function(err){
-		console.log(err);
-	}
-}
+            ResetPassword.find({'email':req.body.email},function(err,resetpass){
+            if(resetpass){
+ 	          if(!resetpass.length==0){
+	          resetpass[0].destroy,function(err){
+		        console.log(err);
+          }
+	         
+        }
 
 ResetPassword.create({
 	email:req.body.email,
@@ -220,15 +221,15 @@ ResetPassword.create({
 		console.log(newresetpass);
 
 const output=`
-     <p>Hello ${user.first_name}</p>
+     <p>Hello ${user[0].first_name}</p>
      <p> To reset your password click on the following link</p>
-     <p>https://auth.com/?action=verify&token=${newresetpass.token} </p>
+     <p>https://auth.com/?action=reset&token=${newresetpass.token} </p>
     `;
 
 let info = {
         from: '"Authentication App" <no-reply@auth.com>', // sender address
         to: req.body.email, // list of receivers
-        subject: "Verificaion Mail", // Subject line
+        subject: "Reset password Mail", // Subject line
         text: "Hello world?", // plain text body
         html: output // html body
       };
@@ -238,7 +239,7 @@ transporter.sendMail(info, function(error, info){
         if(error)
           {res.status(404).json({"ERR":"mail error"})
             return console.log(error);}
-            res.status(200).json({"message":"Email sent",token,user})
+            res.status(200).json({"message":"Email sent"})
       });
 
 
@@ -352,29 +353,33 @@ var authHeaders=req.body.token;
 
 exports.sendVerifyMail=function(req,res,next){
 
-UserModel.find({'email':req.body.email},function(err,user){
-  if(!user) res.status(400).json({Error:'User does not exist'});
+UserModel.find({'email':req.body.email},function(err,user)
+  {
+     if(err) res.status(400).json({Error:'User does not exist'});
 
-  if(user){
+     if(!user.length==0){
 
-ValidateEmailModel.find({'email':req.body.email},function(err,resetpass){
- if(resetpass){
-   if(!resetpass.length==0){
-  resetpass[0].destroy,function(err){
-    console.log(err);
-  }
-}
+        ValidateEmailModel.find({'email':req.body.email},function(err,resetpass){
+        if(!resetpass.length==0)
+         {
+           resetpass[0].destroy,function(err){
+            console.log(err);
+             }
+          }
 
-ValidateEmailModel.create({
-  email:req.body.email,
-  token:crypto.randomBytes(32).toString('hex'),
-  expiry:moment.utc().add('seconds')
-},function(err,newresetpass){
-  if(err) res.json({Error:'Failed'}).status(400);
-  if(newresetpass){
+        ValidateEmailModel.create({
+         email:req.body.email,
+         token:crypto.randomBytes(32).toString('hex'),
+         expiry:moment.utc().add('seconds')
+        },function(err,newresetpass){
+           if(err) res.json({Error:'Failed'}).status(400);
+           if(newresetpass){
+
+    
+//--------------------------send email-----//
 
     const output=`
-     <p>Hello ${user.first_name}</p>
+     <p>Hello ${user[0].first_name}</p>
      <p> please verify your email by using this link</p>
      <p>https://auth.com/?action=verify&token=${newresetpass.token} </p>
     `;
@@ -393,17 +398,11 @@ transporter.sendMail(info, function(error, info){
           {res.status(404).json({"ERR":"mail error"})
             return console.log(error);}
             res.status(200).json({"message":"Email sent"})
-      });
-
-
-    console.log(newresetpass);                        
+      });                        
   }
 })
-};
-
 })
-
-next();
-
 }})
 }
+
+
