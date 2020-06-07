@@ -3,15 +3,18 @@ var ResetValidateModel=require('../db/Reset-Validate.model');
 const ResetPassword=ResetValidateModel.resetPasswordModel;
 const ValidateEmailModel=ResetValidateModel.validateEmailModel;
 const jwt =require('jsonwebtoken');
-const sendMail=require('sendmail');
+ const transporter=require('../Middlewares/mailer')
 const moment =require('moment');
 const crypto=require('crypto');
-
+var dotenv=require('dotenv');
+result=dotenv.config({path:"../"});
+ var nodemailer=require('nodemailer');
 
 //----------- jwt generate token -------////
 function generateToken(email){
 
-var token=jwt.sign({email:email},'myjsonwebtoken',{expiresIn:'1h'});
+
+var token=jwt.sign({email:email},process.env.secret_key,{expiresIn:'1h'});
 return token;
 
 }
@@ -34,8 +37,8 @@ if(!user.length==0){
       if(user[0].password==req.body.password)
         {
 	         const token={
-             refresh:jwt.sign({email:req.body.email},'myjsonwebtoken',{expiresIn:'1d'}),
-             access:jwt.sign({email:req.body.email},'myjsonwebtoken',{expiresIn:'1h'})
+             refresh:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1d'}),
+             access:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1h'})
            };
            let cuser=user[0];
 	         res.json({cuser,token});
@@ -62,7 +65,8 @@ res.status(400).json({"message":"User not found or invalid email"});
 exports.register=function(req,res){
 
 UserModel.find({'email':req.body.email},function(err,user){
-
+console.log(transporter);
+console.log(process.env.password,process.env.email,process.env.secret_key)
 if(!user.length==0 && !user[0].isVerified) {res.status(422).json({"Error":"Email already registered but not verified"})};
 
 if(!user.length==0) {res.status(422).json({"Error":"Email already registered"})};
@@ -77,12 +81,67 @@ if(!user.length==0) {res.status(422).json({"Error":"Email already registered"})}
 	},function(err,user){
 		
      const token={
-             refresh:jwt.sign({email:req.body.email},'myjsonwebtoken',{expiresIn:'1d'}),
-             access:jwt.sign({email:req.body.email},'myjsonwebtoken',{expiresIn:'1h'})
+             refresh:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1d'}),
+             access:jwt.sign({email:req.body.email},process.env.secret_key,{expiresIn:'1h'})
            };
-	if(user) res.json({user,token}).status(200);
-	if(err) res.json(err).status(400);
+if(err) res.json(err).status(400);
+
+if(user){
+ValidateEmailModel.create({
+  email:req.body.email,
+  token:crypto.randomBytes(32).toString('hex'),
+  expiry:moment.utc().add('seconds')
+},function(err,newresetpass){
+  if(err) res.json({Error:'Failed'}).status(400);
+  if(newresetpass){
+    console.log(newresetpass);     
+
+      //   let transporter = nodemailer.createTransport({
+      
+      //   host: "mail.google.com",
+      //   service:"Gmail",
+      //   port: 587,
+      //   secure: false, // true for 465, false for other ports
+      //   auth: {
+      //      user: process.env.email, // generated ethereal user
+      //      pass:process.env.password  // generated ethereal password
+      //    },
+      //   tls:{
+      //       rejectUnauthorized:false
+      //   }
+      // });
+    
+                   
+ 
+
+const output=`
+     <p>Hello ${req.body.first_name}</p>
+     <p> please verify your email by using this link</p>
+     <p>https://auth.com/?action=verify&token=${newresetpass.token} </p>
+    `;
+
+let info = {
+        from: '"Authentication App" <no-reply@auth.com>', // sender address
+        to: req.body.email, // list of receivers
+        subject: "Verificaion Mail", // Subject line
+        text: "Hello world?", // plain text body
+        html: output // html body
+      };
+
+transporter.sendMail(info, function(error, info){
+       console.log(transporter);  
+        if(error)
+          {res.status(404).json({"ERR":"mail error"})
+            return console.log(error);}
+            res.status(200).json({"message":"Email sent",token,user})
+      });
+
+           
+ }
+});
+	 
 	
+	}
 	
 
 	})
@@ -158,7 +217,34 @@ ResetPassword.create({
 },function(err,newresetpass){
 	if(err) res.json({Error:'Failed'}).status(400);
 	if(newresetpass){
-		console.log(newresetpass);	                      
+		console.log(newresetpass);
+
+const output=`
+     <p>Hello ${user.first_name}</p>
+     <p> To reset your password click on the following link</p>
+     <p>https://auth.com/?action=verify&token=${newresetpass.token} </p>
+    `;
+
+let info = {
+        from: '"Authentication App" <no-reply@auth.com>', // sender address
+        to: req.body.email, // list of receivers
+        subject: "Verificaion Mail", // Subject line
+        text: "Hello world?", // plain text body
+        html: output // html body
+      };
+
+transporter.sendMail(info, function(error, info){
+       console.log(transporter);  
+        if(error)
+          {res.status(404).json({"ERR":"mail error"})
+            return console.log(error);}
+            res.status(200).json({"message":"Email sent",token,user})
+      });
+
+
+
+
+
 	}
 })
 };
@@ -238,7 +324,7 @@ var authHeaders=req.body.token;
 
   
 
-  jwt.verify(token,'myjsonwebtoken',(err,decode)=>{
+  jwt.verify(token,config.secret_key,(err,decode)=>{
     if(err) return res.status(401).json(err.message);
     
     
@@ -252,8 +338,8 @@ var authHeaders=req.body.token;
       {
          let token=
          {
-           refresh:jwt.sign({email:email},'myjsonwebtoken',{expiresIn:'1d'}),
-           access:jwt.sign({email:email},'myjsonwebtoken',{expiresIn:'1h'})
+           refresh:jwt.sign({email:email},process.env.secret_key,{expiresIn:'1d'}),
+           access:jwt.sign({email:email},process.env.secret_key,{expiresIn:'1h'})
           }
          res.status(200).json(token);
       }
@@ -286,6 +372,30 @@ ValidateEmailModel.create({
 },function(err,newresetpass){
   if(err) res.json({Error:'Failed'}).status(400);
   if(newresetpass){
+
+    const output=`
+     <p>Hello ${user.first_name}</p>
+     <p> please verify your email by using this link</p>
+     <p>https://auth.com/?action=verify&token=${newresetpass.token} </p>
+    `;
+
+let info = {
+        from: '"Authentication App" <no-reply@auth.com>', // sender address
+        to: req.body.email, // list of receivers
+        subject: "Verificaion Mail", // Subject line
+        text: "Hello world?", // plain text body
+        html: output // html body
+      };
+
+transporter.sendMail(info, function(error, info){
+       console.log(transporter);  
+        if(error)
+          {res.status(404).json({"ERR":"mail error"})
+            return console.log(error);}
+            res.status(200).json({"message":"Email sent"})
+      });
+
+
     console.log(newresetpass);                        
   }
 })

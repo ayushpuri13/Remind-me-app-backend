@@ -1,13 +1,13 @@
 
-var app = require('express')(),
-    mailer = require('express-mailer');
- var nodemailer=require('nodemailer')
+var app = require('express');
+var nodemailer=require('nodemailer');
+var dotenv=require('dotenv');
+result=dotenv.config();
 
 
 
 
 
-exports.sendMail=function sendMail(req,res,next){
 
 // mailer.extend(app, {
 //   from: 'ayushpuri13@blog.com',
@@ -41,55 +41,35 @@ exports.sendMail=function sendMail(req,res,next){
 // }
 
 
-
-//////////-----------------------------------------nodemailer----------------------//
-
- const output=`
-    <p>Hello ${req.body.FullName}</p>
-    <p> 1111 is your otp</p>
-    `;
-
-    let transporter = nodemailer.createTransport({
+var out= {user:process.env.email,pass:process.env.password}
+let transporter = nodemailer.createTransport({
+      
         host: "mail.google.com",
         service:"Gmail",
         port: 587,
         secure: false, // true for 465, false for other ports
-        // auth: {
-        //    user: 'ayushpuri13@gmail.com', // generated ethereal user
-        //    pass: 'xruuzlgjujvmjtrk' // generated ethereal password
-        //  },
+        auth: {
+           user: process.env.email, // generated ethereal user
+           pass:process.env.password  // generated ethereal password
+         },
         tls:{
             rejectUnauthorized:false
         }
       });
-    
+
+//////////-----------------------------------------nodemailer----------------------//
+
+ // 
+
       // send mail with defined transport object
-      let info = {
-        from: '"Vayuz Technology" <ayush.vayuz@gmail.com>', // sender address
-        to: req.body.email, // list of receivers
-        subject: "Verificaion Mail", // Subject line
-        text: "Hello world?", // plain text body
-        html: output // html body
-      };
+      
 
-      transporter.sendMail(info, function(error, info){
-        if(error)
-          {res.status(404).json({"ERR":"mail error"})
-            return console.log(error);}
-            res.status(200).json({"message":"Email sent"})
-      });
-    
-      console.log("Message sent: %s", info.messageId);
-      // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-    
-      // Preview only available when sending through an Ethereal account
-      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-      // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
+    module.exports=transporter;  
     
     
 
     
-    }
+    
 
 
 

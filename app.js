@@ -5,6 +5,7 @@ var mongoose =require('mongoose');
 var bodyParser =require('body-parser');
 var port=process.env.PORT || 3000;
 var cors =require('cors');
+require('dotenv').config();
 
 //----------Config-----//
 app.use(bodyParser.json());

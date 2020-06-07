@@ -3,7 +3,7 @@ var router = express.Router();
 var jwt=require('jsonwebtoken');
 const Validators=require('../Middlewares/Validators')
 const crypto=require('crypto');
-const mailer=require('../Middlewares/mailer')
+var config=require('../Config/config');
 
 
 
@@ -24,7 +24,7 @@ function authenticateToken(req,res,next){
 
 	
 
-	jwt.verify(token,'myjsonwebtoken',(err,decode)=>{
+	jwt.verify(token,process.env.secret_key,(err,decode)=>{
 		if(err) return res.status(401).json(err.message);
 		
 		
@@ -46,6 +46,6 @@ router.post('/change-password',authenticateToken,authController.changePassword);
 router.post('/forgot-password',authController.forgotPassword);
 
 router.post('/refresh-token',authController.refreshToken);
-router.post('/send-verifyemail',authController.sendVerifyMail,mailer.sendMail);
+router.post('/send-verifyemail',authController.sendVerifyMail);
 
 module.exports=router;
