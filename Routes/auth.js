@@ -42,10 +42,11 @@ router.post('/register',Validators.register,authController.register);
 
 
 router.post('/change-password',authenticateToken,authController.changePassword);
-
+router.post('/reset-password',authController.resetPassword);
 router.post('/forgot-password',authController.forgotPassword);
 
 router.post('/refresh-token',authController.refreshToken);
 router.post('/send-verifyemail',authController.sendVerifyMail);
+router.post('/validate-register',authController.validateEmail);
 
 module.exports=router;

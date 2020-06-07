@@ -70,9 +70,9 @@ UserModel.find({'email':req.body.email},function(err,user)
    
    //check if user already exixts
 
-   if(!user.length==0 && !user[0].isVerified) {res.status(422).json({"Error":"Email already registered but not verified"})};
+   if(!user.length==0 && !user[0].isVerified) {res.status(403).json({"Error":"Email already registered but not verified"})};
 
-   if(!user.length==0) {res.status(422).json({"Error":"Email already registered"})};
+   if(!user.length==0) {res.status(400).json({"Error":"Email already registered"})};
 
 //creating user if not exists
 
@@ -129,7 +129,7 @@ transporter.sendMail(info, function(error, info){
         if(error)
           {res.status(404).json({"ERR":"mail error"})
             return console.log(error);}
-            res.status(200).json({"message":"Email sent",token,user})
+            res.status(201).json({"message":"Email sent",token,user})
       });
 
            
@@ -166,7 +166,7 @@ if(!user.length==0)
 	       
 	            if(user)
 	                {
-		                res.json(user).status(200);
+		                res.status(204);
 	                }
 	
                 })
@@ -273,7 +273,7 @@ if(!user.length==0)
 	       if(err) res.status(400).json({"Error":"Reset Password Failed"});
 	       if(updatepass)
 	        {
-		      res.status(200).json({success:true,message:"Password succesfully updated"})
+		      res.status(204)
 	        }
            })
       }
@@ -320,7 +320,7 @@ exports.validateEmail=function(req,res)
 //------------------------refresh token ------------------//
 
 exports.refreshToken=function(req,res){
-var authHeaders=req.body.token;
+var authHeaders=req.body.refresh;
   var token=authHeaders.split(' ')[1];
 
   
